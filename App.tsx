@@ -5,22 +5,68 @@
  * @format
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Button,
   Modal,
   PermissionsAndroid,
   Pressable,
-  Text, View
+  Text, TextInput, View
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { styles } from './styles';
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const addItem = () => {
-  console.log('Add item clicked');
+
+
+// const saveLocation = async (location, count, setCount) => {
+//   try {
+//     await AsyncStorage.setItem(`location:${count}`, JSON.stringify(location));
+//     setCount(count+1);
+//   } catch (err) {
+//     console.log(`Something went wrong: ${err}`);
+//   }
+//   console.log(`Location ${count} saved successfully`);
+// }
+
+// const getStoredLocations = async (count) => {
+//   const locationList = [];
+//   try {
+//     for (let i=1;i<=count;i++) {
+//       const location = await AsyncStorage.getItem(`location:${count}`);
+//       locationList.push(JSON.parse(location));
+//     }
+//   } catch (err) {
+//     console.log(`Something went wrong: ${err}`);
+//   }
+//   console.log(`returning locationList: ${locationList}`);
+//   return locationList;
+// }
+
+// const RenderLocationList = (locationList) => {
+//   console.log(JSON.stringify(locationList, null, 2));
+//   return <>
+//   </>
+// }
+
+
+//------------ NEW ATTEMPT
+
+const log = (label : string, arg, JSONify = true) => {
+  if (JSONify) {
+    console.log(`${label}: ${JSON.stringify(arg, null, 2)}`);
+  } else {
+    console.log(`${label}: ${arg}`);
+  }
 }
+
+type Location = {
+  name: string;
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+};
 
 const requestLocationPermission = async () => {
   console.log(`requestLocationPermission called`);
@@ -39,89 +85,93 @@ const requestLocationPermission = async () => {
   }
 }
 
-const getLocation = async (setLocation) => {
+const getLocation = async () => {
   console.log(`getLocation invoked`);
   const permissionGranted = await requestLocationPermission();
   if (!permissionGranted) {
     return;
   }
-  Geolocation.getCurrentPosition(position => {
-    setLocation(position)
+  const position = await new Promise((resolved) => {
+    Geolocation.getCurrentPosition(position =>
+      resolved({
+        name: 'Enter location name',
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        timestamp: position.timestamp
+      } as Location)
+    );
   });
+  return position;
 }
 
-const saveLocation = async (location, count, setCount) => {
-  try {
-    await AsyncStorage.setItem(`location:${count}`, JSON.stringify(location));
-    setCount(count+1);
-  } catch (err) {
-    console.log(`Something went wrong: ${err}`);
-  }
-  console.log(`Location ${count} saved successfully`);
+
+const renderTableEntry = (name, callback, key, locationTable, setLocationTable) => {
+  return <View key={key}>
+    <Button title="Go"
+        onPress={() => callback()} />
+      <TextInput
+        value={name}
+        onChangeText={(newLocationName) => {
+          const newLocationTable = [...locationTable];
+          locationTable[key].name = newLocationName;
+          setLocationTable(newLocationTable);
+        }} />
+  </View>
 }
 
-const getStoredLocations = async (count) => {
-  const locationList = [];
-  try {
-    for (let i=1;i<=count;i++) {
-      const location = await AsyncStorage.getItem(`location:${count}`);
-      locationList.push(JSON.parse(location));
+const renderTable = (locationTable : Location[], setLocationTable) => {
+  return <View>
+    {
+    locationTable.map(({name, latitude, longitude, timestamp},i) => {
+      const callback = () => Linking.openURL(`https://maps.google.com/?q=${latitude},${longitude}`);
+      return renderTableEntry(name, callback, i, locationTable, setLocationTable);
+    })
     }
-  } catch (err) {
-    console.log(`Something went wrong: ${err}`);
-  }
-  console.log(`returning locationList: ${locationList}`);
-  return locationList;
+  </View>
 }
 
-const RenderLocationList = (locationList) => {
-  console.log(JSON.stringify(locationList, null, 2));
-  return <>
-  </>
+const addNewLocation = async (locationTable, setLocationTable) => {
+  const currLocation = await getLocation();
+  log('currLocation',currLocation);
+  const newLocationTable = [...locationTable, currLocation];
+  log('newLocTable',newLocationTable);
+  setLocationTable(newLocationTable);
 }
 
+const saveLocationTable = (locationTable) => {
+  AsyncStorage.setItem(`locationTable`, JSON.stringify(locationTable));
+}
 
 function App(): JSX.Element {
-  const [location, setLocation] = useState(null);
-  const [modalVisibility, setModalVisibility] = useState(false);
-  const [count, setCount] = useState(1);
-  const [locationList, setLocationList] = useState([]);
+  const [locationTable, setLocationTable] = useState([]);
+  const firstRender = useRef(true);
 
   useEffect(() => {
-    getStoredLocations(count).then((updatedList) => setLocationList(updatedList));
-  }, [count]);
+    // not the best way to ensure fetch from disk happens just once but OK for now
+    if (firstRender.current === true) {
+      AsyncStorage.getItem(`locationTable`).then((result) => {
+        setLocationTable(JSON.parse(result));
+      });
+      firstRender.current = false;
+    }
 
-  return (
-    <View>
-      <Text>Latitude: {location?.coords.latitude}</Text>
-      <Text>Longitude: {location?.coords.longitude}</Text>
-      <Button
-        title="get Location"
-        onPress={() => getLocation(setLocation)}/>
-      <Button
-        title='save location'
-        onPress={() => saveLocation(location, count, setCount)} />
-      <Button
-        title="Home"
-        onPress={() => Linking.openURL(`https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`)} />
-      <Modal
-        transparent={false}
-        visible={modalVisibility}
-        style={styles.modalView}
-        onRequestClose={() => setModalVisibility(!modalVisibility)}>
-        <View><Text style={styles.textStyle}>Modal 1</Text></View>
-      </Modal>
-      <Button 
-        title='toggleModal'
-        onPress={() => setModalVisibility(!modalVisibility)} />
-      <View>
-        <RenderLocationList locationList={locationList} />
-      </View>
-      <Button
-        title='clearAll'
-        onPress={() => setLocation(null)} />
-    </View>
-  );
+    log('locationTable',locationTable);
+    // Instead of writing on every update, write only at the time of app close.
+    saveLocationTable(locationTable);
+  }, [locationTable])
+
+
+  const finalView = <View>
+    {renderTable(locationTable, setLocationTable)}
+    <Button
+      title="Add new"
+      onPress={() => addNewLocation(locationTable, setLocationTable)} />
+    <Button
+      title='Clear saved locations'
+      onPress={() => {AsyncStorage.setItem(`locationTable`, JSON.stringify([]));}} />
+  </View>
+  console.log(finalView);
+  return finalView;
 }
 
 export default App;
