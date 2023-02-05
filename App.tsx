@@ -5,16 +5,18 @@
  * @format
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Button,
   Modal,
   PermissionsAndroid,
+  Pressable,
   Text, View
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { styles } from './styles';
 import { Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const addItem = () => {
   console.log('Add item clicked');
@@ -48,9 +50,46 @@ const getLocation = async (setLocation) => {
   });
 }
 
+const saveLocation = async (location, count, setCount) => {
+  try {
+    await AsyncStorage.setItem(`location:${count}`, JSON.stringify(location));
+    setCount(count+1);
+  } catch (err) {
+    console.log(`Something went wrong: ${err}`);
+  }
+  console.log(`Location ${count} saved successfully`);
+}
+
+const getStoredLocations = async (count) => {
+  const locationList = [];
+  try {
+    for (let i=1;i<=count;i++) {
+      const location = await AsyncStorage.getItem(`location:${count}`);
+      locationList.push(JSON.parse(location));
+    }
+  } catch (err) {
+    console.log(`Something went wrong: ${err}`);
+  }
+  console.log(`returning locationList: ${locationList}`);
+  return locationList;
+}
+
+const RenderLocationList = (locationList) => {
+  console.log(JSON.stringify(locationList, null, 2));
+  return <>
+  </>
+}
+
+
 function App(): JSX.Element {
   const [location, setLocation] = useState(null);
   const [modalVisibility, setModalVisibility] = useState(false);
+  const [count, setCount] = useState(1);
+  const [locationList, setLocationList] = useState([]);
+
+  useEffect(() => {
+    getStoredLocations(count).then((updatedList) => setLocationList(updatedList));
+  }, [count]);
 
   return (
     <View>
@@ -59,6 +98,9 @@ function App(): JSX.Element {
       <Button
         title="get Location"
         onPress={() => getLocation(setLocation)}/>
+      <Button
+        title='save location'
+        onPress={() => saveLocation(location, count, setCount)} />
       <Button
         title="Home"
         onPress={() => Linking.openURL(`https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`)} />
@@ -72,6 +114,12 @@ function App(): JSX.Element {
       <Button 
         title='toggleModal'
         onPress={() => setModalVisibility(!modalVisibility)} />
+      <View>
+        <RenderLocationList locationList={locationList} />
+      </View>
+      <Button
+        title='clearAll'
+        onPress={() => setLocation(null)} />
     </View>
   );
 }
