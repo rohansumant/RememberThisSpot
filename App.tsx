@@ -119,7 +119,7 @@ const RenderTable = (props) => {
         deleteEntryCallback={deleteEntryCallback}
         openLinkCallback={openLinkCallback} />);
     })
-  }   
+  }
   </ScrollView>
 }
 
@@ -143,7 +143,9 @@ function App(): JSX.Element {
     // not the best way to ensure fetch from disk happens just once but OK for now
     if (firstRender.current === true) {
       AsyncStorage.getItem(`locationTable`).then((result) => {
-        setLocationTable(JSON.parse(result));
+        if (result) {
+          setLocationTable(JSON.parse(result));
+        }
       });
       firstRender.current = false;
     }
@@ -167,6 +169,7 @@ function App(): JSX.Element {
     </View>
     <View style={styles.footer}>
       <Icon.Button name="warning"
+        backgroundColor="red"
         onPress={() => setLocationTable([])}>
           Delete all entries
       </Icon.Button>
