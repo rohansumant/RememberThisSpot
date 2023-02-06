@@ -7,51 +7,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Button,
-  Modal,
-  PermissionsAndroid,
-  Pressable,
-  Text, TextInput, View
+  PermissionsAndroid, ScrollView, TextInput, View
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { styles } from './styles';
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
-
-// const saveLocation = async (location, count, setCount) => {
-//   try {
-//     await AsyncStorage.setItem(`location:${count}`, JSON.stringify(location));
-//     setCount(count+1);
-//   } catch (err) {
-//     console.log(`Something went wrong: ${err}`);
-//   }
-//   console.log(`Location ${count} saved successfully`);
-// }
-
-// const getStoredLocations = async (count) => {
-//   const locationList = [];
-//   try {
-//     for (let i=1;i<=count;i++) {
-//       const location = await AsyncStorage.getItem(`location:${count}`);
-//       locationList.push(JSON.parse(location));
-//     }
-//   } catch (err) {
-//     console.log(`Something went wrong: ${err}`);
-//   }
-//   console.log(`returning locationList: ${locationList}`);
-//   return locationList;
-// }
-
-// const RenderLocationList = (locationList) => {
-//   console.log(JSON.stringify(locationList, null, 2));
-//   return <>
-//   </>
-// }
-
-
-//------------ NEW ATTEMPT
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const log = (label : string, arg, JSONify = true) => {
   if (JSONify) {
@@ -105,29 +67,60 @@ const getLocation = async () => {
 }
 
 
-const renderTableEntry = (name, callback, key, locationTable, setLocationTable) => {
-  return <View key={key}>
-    <Button title="Go"
-        onPress={() => callback()} />
-      <TextInput
-        value={name}
-        onChangeText={(newLocationName) => {
-          const newLocationTable = [...locationTable];
-          locationTable[key].name = newLocationName;
-          setLocationTable(newLocationTable);
-        }} />
+const RenderTableEntry = (props) => {
+  return <View key={props.index} style={styles.tableRow}>
+    <View style={styles.smallButton}>
+      <Icon.Button name="rocket"
+        backgroundColor='green'
+        onPress={() => props.openLinkCallback(props.index)} />
+    </View>
+    <View style={styles.smallButton}>
+      <Icon.Button name="trash"
+        backgroundColor='red'
+        onPress={() => props.deleteEntryCallback(props.index)} />
+    </View>
+    <TextInput style={{paddingLeft: 10}}
+      value={props.name}
+      onChangeText={(newText) => props.onChangeText(props.index, newText)}
+      />
   </View>
 }
 
-const renderTable = (locationTable : Location[], setLocationTable) => {
-  return <View>
+const RenderTable = (props) => {
+
+  const locationTable = props.locationTable;
+  const setLocationTable = props.setLocationTable;
+
+  const openLinkCallback = (key) => {
+    const location = locationTable[key];
+    Linking.openURL(`https://maps.google.com/?q=${location.latitude},${location.longitude}`);
+  };
+
+  const deleteEntryCallback = (key) => {
+    const newLocationTable = [...locationTable];
+    newLocationTable.splice(key, 1);
+    setLocationTable(newLocationTable);
+  };
+
+  const onChangeText = (key, text) => {
+    const newLocationTable = [...locationTable];
+    newLocationTable[key].name = text;
+    setLocationTable(newLocationTable);
+  };
+
+  return <ScrollView style={styles.table}>
     {
-    locationTable.map(({name, latitude, longitude, timestamp},i) => {
-      const callback = () => Linking.openURL(`https://maps.google.com/?q=${latitude},${longitude}`);
-      return renderTableEntry(name, callback, i, locationTable, setLocationTable);
+    locationTable.map(({name}, i) => {
+      return (<RenderTableEntry
+        name={name}
+        key={i}
+        index={i}
+        onChangeText={onChangeText}
+        deleteEntryCallback={deleteEntryCallback}
+        openLinkCallback={openLinkCallback} />);
     })
-    }
-  </View>
+  }   
+  </ScrollView>
 }
 
 const addNewLocation = async (locationTable, setLocationTable) => {
@@ -155,20 +148,29 @@ function App(): JSX.Element {
       firstRender.current = false;
     }
 
-    log('locationTable',locationTable);
+    log('locationTable', locationTable);
     // Instead of writing on every update, write only at the time of app close.
     saveLocationTable(locationTable);
   }, [locationTable])
 
 
-  const finalView = <View>
-    {renderTable(locationTable, setLocationTable)}
-    <Button
-      title="Add new"
-      onPress={() => addNewLocation(locationTable, setLocationTable)} />
-    <Button
-      title='Clear saved locations'
-      onPress={() => {AsyncStorage.setItem(`locationTable`, JSON.stringify([]));}} />
+  const finalView = <View style={styles.topContainer}>
+    <RenderTable
+      locationTable={locationTable}
+      setLocationTable={setLocationTable}
+      />
+    <View style={styles.footer}>
+      <Icon.Button name="plus"
+        onPress={() => addNewLocation(locationTable, setLocationTable)}>
+          Save current location
+      </Icon.Button>
+    </View>
+    <View style={styles.footer}>
+      <Icon.Button name="warning"
+        onPress={() => setLocationTable([])}>
+          Delete all entries
+      </Icon.Button>
+    </View>
   </View>
   console.log(finalView);
   return finalView;

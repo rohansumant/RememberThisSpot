@@ -1,44 +1,27 @@
 import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
-    centeredView: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 22,
+    topContainer: {
+        flex: 1,
+        flexDirection: 'column',
     },
-    modalView: {
-      margin: 20,
-      backgroundColor: 'black',
-      borderRadius: 20,
-      padding: 35,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+    table: {
+        flexGrow: 1,
+        borderWidth: 1,
+        borderColor: 'white',
     },
-    button: {
-      borderRadius: 20,
-      padding: 10,
-      elevation: 2,
+    tableRow: {
+        flexDirection: 'row',
     },
-    buttonOpen: {
-      backgroundColor: '#F194FF',
+    smallButton: {
+        height: 50,
+        width: 50,
+        paddingTop: 5,
+        paddingLeft: 5,
     },
-    buttonClose: {
-      backgroundColor: '#2196F3',
-    },
-    textStyle: {
-      color: 'black',
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-    modalText: {
-      marginBottom: 15,
-      textAlign: 'center',
-    },
+    footer: {
+        flex: 0,
+        justifyContent: 'flex-end',
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+    }
   });
