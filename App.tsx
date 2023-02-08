@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  PermissionsAndroid, ScrollView, TextInput, View
+  PermissionsAndroid, SafeAreaView, ScrollView, TextInput, View
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { styles } from './styles';
@@ -79,7 +79,7 @@ const RenderTableEntry = (props) => {
         backgroundColor='red'
         onPress={() => props.deleteEntryCallback(props.index)} />
     </View>
-    <TextInput style={{paddingLeft: 10}}
+    <TextInput style={styles.textInput}
       value={props.name}
       onChangeText={(newText) => props.onChangeText(props.index, newText)}
       />
@@ -153,10 +153,9 @@ function App(): JSX.Element {
     log('locationTable', locationTable);
     // Instead of writing on every update, write only at the time of app close.
     saveLocationTable(locationTable);
-  }, [locationTable])
+  }, [locationTable]);
 
-
-  const finalView = <View style={styles.topContainer}>
+  const finalView = <SafeAreaView style={styles.topContainer}>
     <RenderTable
       locationTable={locationTable}
       setLocationTable={setLocationTable}
@@ -174,7 +173,7 @@ function App(): JSX.Element {
           Delete all entries
       </Icon.Button>
     </View>
-  </View>
+  </SafeAreaView>
   console.log(finalView);
   return finalView;
 }
